@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Book OTP</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+
+<h3>Video Book Phone Verification</h3>
+
+<div id="recaptcha-container"></div>
+
+<input id="phone" type="tel"
+placeholder="+8801XXXXXXXXX">
+
+<button onclick="sendOTP()">Send OTP</button>
+
+<br><br>
+
+<input id="otp" type="number"
+placeholder="Enter 6 digit OTP">
+
+<button onclick="verifyOTP()">Verify OTP</button>
+
+<p id="message"></p>
+
+<script>
+
+// Firebase configuration বসাতে হবে
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+
+let confirmationResult = null;
+
+window.onload = function() {
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+    'recaptcha-container',
+    { size: 'normal' }
+  );
+  recaptchaVerifier.render();
+};
+
+function sendOTP() {
+  const phone = document.getElementById("phone").value.trim();
+
+  auth.signInWithPhoneNumber(
+    phone,
+    window.recaptchaVerifier
+  ).then(result => {
+    confirmationResult = result;
+    document.getElementById("message").innerText =
+      "OTP sent successfully";
+    sendToApp("OTP_SENT");
+  }).catch(error => {
+    document.getElementById("message").innerText =
+      error.message;
+    sendToApp("ERROR:" + error.code);
+  });
+}
+
+function verifyOTP() {
+  const code = document.getElementById("otp").value.trim();
+
+  if (!confirmationResult || !/^\d{6}$/.test(code)) {
+    document.getElementById("message").innerText =
+      "Enter the correct 6 digit OTP";
+    return;
+  }
+
+  confirmationResult.confirm(code)
+    .then(result => {
+      document.getElementById("message").innerText =
+        "Phone verified successfully";
+      sendToApp("VERIFIED:" + result.user.uid);
+    })
+    .catch(error => {
+      document.getElementById("message").innerText =
+        "Invalid OTP";
+      sendToApp("ERROR:" + error.code);
+    });
+}
+
+function sendToApp(value) {
+  if (window.AppInventor) {
+    window.AppInventor.setWebViewString(value);
+  }
+}
+
+</script>
+</body>
+</html>
